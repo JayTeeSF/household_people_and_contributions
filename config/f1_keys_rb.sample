@@ -1,0 +1,28 @@
+module F1Keys
+
+  CONSUMER_KEY = 'DDD'
+  CONSUMER_SECRET = 'DA-da'
+  ENVIRONMENT = 'staging'
+  CHURCH_CODE = 'code' # must be lower-case
+
+  # http://developer.fellowshipone.com/test_harness/index.php
+  # CALLBACK_URL = 'http://portal.fellowshipone.com/fellowship_one_connect'
+
+  # callback is the URL on THIS server (assuming this app is hosted):
+  CALLBACK_URL = 'http://www.example.com/fellowship_one_connect'
+  #'https://demo.fellowshiponeapi.com/'
+
+  OAUTH_TOKEN = '*** OAUTH TOKEN ***'
+  OAUTH_SECRET = '*** OAUTH SECRET ***'
+
+  # need to base64 encode username:pwd, too:
+  USERNAME = '** USERNAME **'
+  PASSWORD = '** PWD **'
+  require 'cgi'
+  require 'base64'
+  BODY = CGI.escape(Base64.strict_encode64("#{USERNAME} #{PASSWORD}"))
+
+  ###############################################################
+  IS_PRODUCTION = ENVIRONMENT == 'production' ? true : false
+
+end

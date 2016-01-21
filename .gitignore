@@ -1,0 +1,10 @@
+config/f1_keys.rb
+!config/.keep
+cache/*
+!cache/.keep
+bak/*
+old/*
+output/*
+!output/.keep
+pkg/*.gem
+tags
