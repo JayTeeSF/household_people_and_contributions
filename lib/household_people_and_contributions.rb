@@ -1,8 +1,6 @@
 require 'oauth'
 require 'yaml'
 require 'json'
-#require "rubygems"
-gem 'fellowshipone-api', require: 'fellowshipone'
 
 module HouseholdPeopleAndContributions
 end

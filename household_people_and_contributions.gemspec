@@ -22,6 +22,5 @@ Gem::Specification.new do |s|
 
   # specify any dependencies here; for example:
   # s.add_runtime_dependency "rest-client"
-  s.add_runtime_dependency 'f1api'
-  s.add_runtime_dependency 'fellowshipone-api' #, require: 'fellowshipone'
+  s.add_runtime_dependency 'oauth'
 end
