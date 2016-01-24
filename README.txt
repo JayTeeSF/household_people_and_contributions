@@ -11,7 +11,7 @@
 KEY_FILE=`pwd`/config/f1_keys.rb ./bin/household_people_and_contributions.rb
 # OR:
 KEY_FILE=`pwd`/config/f1_keys.rb irb -r "./bin/household_people_and_contributions.rb"
-> hpac = HouseholdPeopleAndContributions.new
+> hpac = HouseholdPeopleAndContributions::Client.new
 > hpac.pp
 > hpac.contributions_by_household
 > hpac.hh
