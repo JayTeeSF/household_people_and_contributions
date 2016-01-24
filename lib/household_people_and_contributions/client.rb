@@ -175,11 +175,11 @@ module HouseholdPeopleAndContributions
         household_array = results["household"]
         @household_records += household_array.reduce([]) { |memo, household_record|
           tmp_record = {}
-          tmp_record["id"] = household_record["@id"]
-          tmp_record["household_name"] = household_record["householdName"]
-          tmp_record["household_sort_name"] = household_record["householdSortName"]
-          tmp_record["created_date"] = household_record["createdDate"]
-          tmp_record["updated_date"] = household_record["lastUpdatedDate"]
+          tmp_record["key"] = household_record["@id"]
+          tmp_record["name"] = household_record["householdName"]
+          tmp_record["sort_name"] = household_record["householdSortName"]
+          tmp_record["created_at"] = household_record["createdDate"]
+          tmp_record["updated_at"] = household_record["lastUpdatedDate"]
           memo << tmp_record.dup
           memo
         }
@@ -210,7 +210,7 @@ module HouseholdPeopleAndContributions
 
         if current_month < 5 # we're nearing the end of the cycle
           # from previous year, to current-year
-          from = "#{previous_year}-05-01"
+          from = "#{previous_year}-05-01" # TBD: make this configurable!
           upto_but_not_including ||= "#{current_year}-05-01"
         else
           # from current year, to next-year
@@ -229,14 +229,14 @@ module HouseholdPeopleAndContributions
         if contribution_array = results["contributionReceipt"]
           @contribution_records += contribution_array.reduce([]) { |memo, contribution_record|
             tmp_record = {}
-            tmp_record["id"] = contribution_record["@id"]
+            tmp_record["key"] = contribution_record["@id"]
             tmp_record["amount"] = contribution_record["amount"]
-            tmp_record["fund_id"] = contribution_record["fund"]["@id"]
+            tmp_record["fund_key"] = contribution_record["fund"]["@id"]
             tmp_record["fund_name"] = contribution_record["fund"]["name"]
-            tmp_record["household_id"] = contribution_record["household"]["@id"]
+            tmp_record["household_key"] = contribution_record["household"]["@id"]
             tmp_record["received_date"] = contribution_record["receivedDate"]
             tmp_record["transmit_date"] = contribution_record["transmitDate"]
-            tmp_record["created_date"] = contribution_record["createdDate"]
+            tmp_record["created_at"] = contribution_record["createdDate"]
 
             tmp_record["updated_date"] = contribution_record["lastUpdatedDate"]
             memo << tmp_record.dup
@@ -264,16 +264,16 @@ module HouseholdPeopleAndContributions
           if VALID_STATUSES.include?(status) && household_id == person_record["@householdID"]
             tmp_record = {}
 
-            tmp_record["id"] = person_record["@id"]
-            tmp_record["household_id"] = person_record["@householdID"]
+            tmp_record["key"] = person_record["@id"]
+            tmp_record["household_key"] = person_record["@householdID"]
             tmp_record["status"] = status
 
             tmp_record["first_name"] = person_record["firstName"]
             tmp_record["last_name"] = person_record["lastName"]
             tmp_record["suffix"] = person_record["suffix"]
 
-            tmp_record["created_date"] = person_record["createdDate"]
-            tmp_record["updated_date"] = person_record["lastUpdatedDate"]
+            tmp_record["created_at"] = person_record["createdDate"]
+            tmp_record["updated_at"] = person_record["lastUpdatedDate"]
 
             memo << tmp_record.dup
           end
@@ -284,7 +284,7 @@ module HouseholdPeopleAndContributions
     end
 
     def household_ids_for(households)
-      households.map { |household_record| household_record["id"] }
+      households.map { |household_record| household_record["key"] }
     end
 
     def get_people_in_households(households=[])
@@ -308,8 +308,8 @@ module HouseholdPeopleAndContributions
           tmp_record = {}
           attributes_array = scholar_record["attributes"]["attribute"]
           attributes_array.each do |attribute_entry|
-            if attribute_entry["attributeGroup"]["name"] == "Grade"
-              tmp_record["id"] = attribute_entry["person"]["@id"]
+            if attribute_entry["attributeGroup"]["name"].downcase == "grade"
+              tmp_record["key"] = attribute_entry["person"]["@id"]
               tmp_record["grade"] = attribute_entry["attributeGroup"]["attribute"]["name"]
             end
           end
@@ -324,10 +324,10 @@ module HouseholdPeopleAndContributions
     def get_scholar_grades_for(people=[], options = {})
       n_at_a_time = options[:recordsPerPage] || 200
       @attributed_scholars = []
-      scholars = people.select { |person| SCHOLAR_STATUS == person["status"] }
+      scholars = people.select { |person| SCHOLAR_STATUS == person["status"] }.dup
       extra_params = "recordsPerPage=#{n_at_a_time}"
       while !scholars.empty?
-        scholar_id_list = scholars.pop(n_at_a_time).map {|s| s["id"] }
+        scholar_id_list = scholars.pop(n_at_a_time).map {|s| s["key"] }
         scholar_id_list_csv = scholar_id_list.join(",")
         @attributed_scholars += scholar_records(scholar_id_list_csv, extra_params: extra_params)
       end
@@ -337,7 +337,7 @@ module HouseholdPeopleAndContributions
 
     def add_contribution_sum_to_households(contributions, hh)
       contributions.each do |contribution_record|
-        household = hh.detect { |h| h["id"] == contribution_record["household_id"] }
+        household = hh.detect { |h| h["key"] == contribution_record["household_key"] }
         if household
           household["contribution_total"] ||= 0
           household["contribution_total"] += contribution_record["amount"].to_f
@@ -348,7 +348,7 @@ module HouseholdPeopleAndContributions
 
     def add_grades_to_people(as, pp)
       as.each do |scholar|
-        person = pp.detect { |p| p["id"] == scholar["id"] }
+        person = pp.detect { |p| p["key"] == scholar["key"] }
         if person
           person["grade"] = scholar["grade"]
         end
@@ -399,10 +399,6 @@ module HouseholdPeopleAndContributions
     end
 
     def report
-      warn "--> hh: "
-      File.write(OUTPUT_DIR + "/" + "households.json", hh.to_json)
-      puts hh.to_json
-
       warn "\n--> people and scholars: "
       File.write(OUTPUT_DIR + "/" + "people.json", pp.to_json)
       puts pp.to_json
@@ -410,6 +406,11 @@ module HouseholdPeopleAndContributions
       warn "\n--> contributions: "
       File.write(OUTPUT_DIR + "/" + "contributions.json", contributions_by_household.to_json)
       puts contributions_by_household.to_json
+
+      warn "--> hh: "
+      File.write(OUTPUT_DIR + "/" + "households.json", hh.to_json)
+      puts hh.to_json
+
       return {hh: @hh, pp: @pp, contributions_by_household: @contributions_by_household}
     end
   end

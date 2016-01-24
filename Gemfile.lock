@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    household_people_and_contributions (0.0.2)
+    household_people_and_contributions (0.0.4)
       oauth
 
 GEM
