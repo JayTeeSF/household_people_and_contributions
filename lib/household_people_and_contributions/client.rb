@@ -38,9 +38,9 @@ module HouseholdPeopleAndContributions
     JSONED_GRADE_FILE = "grade_records.json"
     JSONED_HOUSEHOLDS_FILE = "household_records.json"
 
-    HOUSEHOLD_SEARCH_PATH_PREFIX = "/v1/Households/Search.json?searchfor="
+    HOUSEHOLD_SEARCH_PATH_PREFIX = "/v1/Households/Search.json?include=communications&searchfor="
     PEOPLE_RECORDS_PATH_TEMPLATE = "/v1/Households/%s/People.json"
-    ATTRIBUTED_SCHOLAR_RECORDS_PATH_FORMAT = "/v1/People/Search.json?id=%s&include=attributes"
+    ATTRIBUTED_SCHOLAR_RECORDS_PATH_FORMAT = "/v1/People/Search.json?id=%s&include=communications,attributes"
     CONTRIBUTION_RECORDS_PATH_TEMPLATE = "/giving/v1/contributionreceipts/search.json?householdID=%s&startReceivedDate=%s&endReceivedDate=%s"
 
     def key
@@ -295,6 +295,33 @@ module HouseholdPeopleAndContributions
       return @people
     end
 
+    def parent_records(id_list_csv, options={})
+      @parent_records = []
+      emailable_parent_records_path = ATTRIBUTED_SCHOLAR_RECORDS_PATH_FORMAT % id_list_csv
+      emailable_parent_records_path = "#{emailable_parent_records_path}&#{options[:extra_params]}"
+      parent_results = lookup(emailable_parent_records_path, JSONED_GRADE_FILE, prefix: id_list_csv.gsub(',','_'))
+
+      parent_results.each do |results|
+        parents_array = results["results"]["person"]
+        @parent_records += parents_array.reduce([]) { |memo, parent_record|
+
+          if parent_record["communications"]
+            tmp_record = {}
+            communications_array = parent_record["communications"]["communication"]
+            communications_array.each do |communication_entry|
+              if communication_entry["communicationType"]["name"].downcase == "email"
+                tmp_record["key"] = communication_entry["person"]["@id"]
+                tmp_record["email"] = communication_entry["communicationValue"]
+              end
+            end
+            memo << tmp_record.dup if tmp_record["email"]
+          end
+          memo
+        }
+      end
+      @parent_records
+    end
+
     def scholar_records(id_list_csv, options={})
       @scholar_records = []
       attributed_scholar_records_path = ATTRIBUTED_SCHOLAR_RECORDS_PATH_FORMAT % id_list_csv
@@ -321,10 +348,28 @@ module HouseholdPeopleAndContributions
     end
 
 
+    def get_people_email_for(people=[], options = {})
+      n_at_a_time = options[:recordsPerPage] || 200
+      @emailable_people = []
+      warn "\n\n\t------------------> HERE\n\n"
+      parents = people.select { |person| PARENT_STATUS == person["status"].downcase }
+      warn "\n\tparents: #{parents.inspect}\n\n\n"
+      extra_params = "recordsPerPage=#{n_at_a_time}"
+      while !parents.empty?
+        parent_id_list = parents.pop(n_at_a_time).map {|s| s["key"] }
+        parent_id_list_csv = parent_id_list.join(",")
+        @emailable_people += parent_records(parent_id_list_csv, extra_params: extra_params)
+      end
+
+      return @emailable_people
+    end
+
     def get_scholar_grades_for(people=[], options = {})
       n_at_a_time = options[:recordsPerPage] || 200
       @attributed_scholars = []
-      scholars = people.select { |person| SCHOLAR_STATUS == person["status"] }.dup
+      warn "\n\n\t------------------> HERE\n\n"
+      scholars = people.select { |person| SCHOLAR_STATUS == person["status"].downcase }
+      warn "\n\tscholars: #{scholars.inspect}\n\n\n"
       extra_params = "recordsPerPage=#{n_at_a_time}"
       while !scholars.empty?
         scholar_id_list = scholars.pop(n_at_a_time).map {|s| s["key"] }
@@ -344,6 +389,16 @@ module HouseholdPeopleAndContributions
         end
       end
       return hh
+    end
+
+    def add_email_to_people(em, pp)
+      em.each do |parent|
+        person = pp.detect { |p| p["key"] == parent["key"] }
+        if person
+          person["email"] = parent["email"]
+        end
+      end
+      return pp
     end
 
     def add_grades_to_people(as, pp)
@@ -380,6 +435,8 @@ module HouseholdPeopleAndContributions
     def as
       unless @as
         @as = get_scholar_grades_for(pp, recordsPerPage: 200)
+        @em = get_people_email_for(pp, recordsPerPage: 200)
+        @pp = add_email_to_people(@em, pp)
         @pp = add_grades_to_people(@as, pp)
       end
       @as
@@ -399,6 +456,7 @@ module HouseholdPeopleAndContributions
     end
 
     def report
+      as # get people, add grades to them...
       warn "\n--> people and scholars: "
       File.write(OUTPUT_DIR + "/" + "people.json", pp.to_json)
       puts pp.to_json

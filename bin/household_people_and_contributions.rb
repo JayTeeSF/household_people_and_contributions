@@ -6,7 +6,7 @@ begin
   require "household_people_and_contributions"
 rescue LoadError => e
   warn "LoadError: #{e.message.inspect}"
-  #  require_relative "../lib/household_people_and_contributions"
+  require_relative "../lib/household_people_and_contributions"
 end
 
 if File.basename(__FILE__) == File.basename($PROGRAM_NAME)
