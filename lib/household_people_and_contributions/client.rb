@@ -130,11 +130,11 @@ module HouseholdPeopleAndContributions
       while loop_again
         paged_path = key.nil? ? path : "#{path}&page=#{current_page_number}"
 
-        warn "GET'ing: #{paged_path.inspect}..."
+        #warn "GET'ing: #{paged_path.inspect}..."
         response =  access_token.get(paged_path)
 
         response_body = response.body
-        warn "BODY: #{response_body.inspect}..."
+        #warn "BODY: #{response_body.inspect}..."
         json_body = JSON.parse(response_body)
 
         results = key.nil? ? json_body : json_body[key]
@@ -238,7 +238,7 @@ module HouseholdPeopleAndContributions
             tmp_record["transmit_date"] = contribution_record["transmitDate"]
             tmp_record["created_at"] = contribution_record["createdDate"]
 
-            tmp_record["updated_date"] = contribution_record["lastUpdatedDate"]
+            tmp_record["updated_at"] = contribution_record["lastUpdatedDate"]
             memo << tmp_record.dup
             memo
           }
@@ -351,9 +351,9 @@ module HouseholdPeopleAndContributions
     def get_people_email_for(people=[], options = {})
       n_at_a_time = options[:recordsPerPage] || 200
       @emailable_people = []
-      warn "\n\n\t------------------> HERE\n\n"
+      #warn "\n\n\t------------------> HERE\n\n"
       parents = people.select { |person| PARENT_STATUS == person["status"].downcase }
-      warn "\n\tparents: #{parents.inspect}\n\n\n"
+      #warn "\n\tparents: #{parents.inspect}\n\n\n"
       extra_params = "recordsPerPage=#{n_at_a_time}"
       while !parents.empty?
         parent_id_list = parents.pop(n_at_a_time).map {|s| s["key"] }
@@ -367,9 +367,9 @@ module HouseholdPeopleAndContributions
     def get_scholar_grades_for(people=[], options = {})
       n_at_a_time = options[:recordsPerPage] || 200
       @attributed_scholars = []
-      warn "\n\n\t------------------> HERE\n\n"
+      #warn "\n\n\t------------------> HERE\n\n"
       scholars = people.select { |person| SCHOLAR_STATUS == person["status"].downcase }
-      warn "\n\tscholars: #{scholars.inspect}\n\n\n"
+      #warn "\n\tscholars: #{scholars.inspect}\n\n\n"
       extra_params = "recordsPerPage=#{n_at_a_time}"
       while !scholars.empty?
         scholar_id_list = scholars.pop(n_at_a_time).map {|s| s["key"] }
@@ -417,7 +417,7 @@ module HouseholdPeopleAndContributions
         query = "%"
         path = "#{HOUSEHOLD_SEARCH_PATH_PREFIX}#{query}"
         household_records_path = "#{path}&recordsPerPage=200"
-        warn "-> Search Households for #{query}..."
+        #warn "-> Search Households for #{query}..."
         @hh = household_records(household_records_path)
       end
       @hh
@@ -457,15 +457,15 @@ module HouseholdPeopleAndContributions
 
     def report
       as # get people, add grades to them...
-      warn "\n--> people and scholars: "
+      #warn "\n--> people and scholars: "
       File.write(OUTPUT_DIR + "/" + "people.json", pp.to_json)
       puts pp.to_json
 
-      warn "\n--> contributions: "
+      #warn "\n--> contributions: "
       File.write(OUTPUT_DIR + "/" + "contributions.json", contributions_by_household.to_json)
       puts contributions_by_household.to_json
 
-      warn "--> hh: "
+      #warn "--> hh: "
       File.write(OUTPUT_DIR + "/" + "households.json", hh.to_json)
       puts hh.to_json
 
