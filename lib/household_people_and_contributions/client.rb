@@ -43,6 +43,10 @@ module HouseholdPeopleAndContributions
     ATTRIBUTED_SCHOLAR_RECORDS_PATH_FORMAT = "/v1/People/Search.json?id=%s&include=communications,attributes"
     CONTRIBUTION_RECORDS_PATH_TEMPLATE = "/giving/v1/contributionreceipts/search.json?householdID=%s&startReceivedDate=%s&endReceivedDate=%s"
 
+    def initialize(cache=true)
+      @cache = cache
+    end
+
     def key
       unless @key
         @key =
@@ -158,11 +162,13 @@ module HouseholdPeopleAndContributions
         cache_file = options[:prefix] + "_" + cache_file
       end
       cache_file =  CACHE_DIR + "/" + cache_file
-      if File.exists?(cache_file)
+      if @cache && File.exists?(cache_file)
         results_array = JSON.parse(File.read(cache_file))
       else
         results_array = get(records_path, options[:key])
-        File.write(cache_file, results_array.to_json)
+        if @cache
+          File.write(cache_file, results_array.to_json)
+        end
       end
       return results_array
     end
