@@ -257,7 +257,9 @@ module HouseholdPeopleAndContributions
       people_results = lookup(people_records_path, JSONED_PEOPLE_FILE, prefix: household_id)
 
       people_results.each do |results|
-        persons_array = results["people"]["person"]
+        people_hash = results["people"]
+        if people_hash
+        persons_array = people_hash["person"]
         @people_records += persons_array.reduce([]) { |memo, person_record|
 
           status = person_record["status"]["name"].downcase
@@ -279,6 +281,9 @@ module HouseholdPeopleAndContributions
           end
           memo
         }
+        else
+          warn "no person hash for household(#{household_id})'s people: #{people_hash.inspect}"
+      end
       end
       @people_records
     end
