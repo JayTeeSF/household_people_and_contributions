@@ -24,8 +24,10 @@ module HouseholdPeopleAndContributions
     CONFIG_DIR = "./config"
     fail help("missing config_dir: #{CONFIG_DIR.inspect}") unless File.exists?(CONFIG_DIR)
     KEY_FILE = ENV['KEY_FILE']
-    fail help("missing KEY_FILE: #{KEY_FILE.inspect}") unless KEY_FILE && File.exists?(KEY_FILE)
-    require_relative(KEY_FILE)
+    #fail help("missing KEY_FILE: #{KEY_FILE.inspect}") unless KEY_FILE && File.exists?(KEY_FILE)
+    if KEY_FILE && File.exists?(KEY_FILE)
+      require_relative(KEY_FILE)
+    end
 
     OUTPUT_DIR = "./output"
     fail help("missing output_dir: #{OUTPUT_DIR.inspect}") unless File.exists?(OUTPUT_DIR)
@@ -50,7 +52,7 @@ module HouseholdPeopleAndContributions
     def key
       unless @key
         @key =
-          F1Keys::CONSUMER_KEY
+          ENV['CONSUMER_KEY'] || F1Keys::CONSUMER_KEY
       end
       @key
     end
@@ -58,7 +60,7 @@ module HouseholdPeopleAndContributions
     def secret
       unless @secret
         @secret =
-          F1Keys::CONSUMER_SECRET
+          ENV['CONSUMER_SECRET'] || F1Keys::CONSUMER_SECRET
       end
       @secret
     end
@@ -66,7 +68,7 @@ module HouseholdPeopleAndContributions
     def consumer
       unless @consumer
         @consumer = OAuth::Consumer.new(key, secret, {
-          site: "https://#{F1Keys::CHURCH_CODE}.#{F1Keys::ENVIRONMENT}.fellowshiponeapi.com",
+          site: "https://#{ENV['CHURCH_CODE'] || F1Keys::CHURCH_CODE}.#{ENV['ENVIRONMENT'] || F1Keys::ENVIRONMENT}.fellowshiponeapi.com",
           request_token_path: "/v1/Tokens/RequestToken",
           authorize_path: "/v1/PortalUser/Login",
           # access_token_path: "/v1/Tokens/AccessToken",
@@ -80,13 +82,13 @@ module HouseholdPeopleAndContributions
     end
 
     def oauth_tokens?
-      F1Keys::OAUTH_TOKEN && F1Keys::OAUTH_SECRET
+      (ENV['OAUTH_TOKEN'] || F1Keys::OAUTH_TOKEN) && (ENV['OAUTH_SECRET'] || F1Keys::OAUTH_SECRET)
     end
 
     def access_token
       unless @access_token
         if oauth_tokens?
-          @access_token = OAuth::AccessToken.new(consumer, F1Keys::OAUTH_TOKEN, F1Keys::OAUTH_SECRET)
+          @access_token = OAuth::AccessToken.new(consumer, ENV['OAUTH_TOKEN'] || F1Keys::OAUTH_TOKEN, ENV['OAUTH_SECRET'] || F1Keys::OAUTH_SECRET)
         end
         unless @access_token
           if File.exists?(MARSHALED_ACCESS_TOKEN_FILE)
